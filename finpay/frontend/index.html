@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinPay — Campus Digital Wallet & Cashback System</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            finpay: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b'
+            },
+            campus: {
+              50: '#f8fafc',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- Top Navigation & Live Real-Time Banner -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Branding -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('student-wallet')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-black text-xl">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xl font-bold tracking-tight text-white">Fin<span class="text-emerald-400">Pay</span></span>
+            <span class="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">Lab 3 Edition</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Campus Digital Wallet & Real-time Cashback</p>
+        </div>
+      </div>
+
+      <!-- Real-Time WebSocket Status & Nav Links -->
+      <div class="flex items-center space-x-4">
+        <!-- Live WS Badge -->
+        <div id="ws-badge" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span id="ws-status-text">Live Real-Time Active</span>
+        </div>
+
+        <!-- Quick Persona Switcher & Add User Button -->
+        <button onclick="openRegisterStudentModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-semibold shadow-md shadow-emerald-600/20 transition">
+          <i class="fa-solid fa-user-plus text-[11px]"></i>
+          <span>+ Add Person</span>
+        </button>
+
+        <div class="relative group">
+          <button id="persona-btn" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">
+            <i class="fa-solid fa-user-circle text-emerald-400"></i>
+            <span id="current-persona-name">Rahul (BASIC)</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+          </button>
+          <div class="hidden group-hover:block absolute right-0 mt-1 w-72 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-2 z-50">
+            <div class="flex items-center justify-between px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span>Switch Student</span>
+              <button onclick="openRegisterStudentModal()" class="text-emerald-400 hover:underline lowercase font-normal">+ add new</button>
+            </div>
+            
+            <!-- Dynamic Users List Container -->
+            <div id="persona-students-list" class="max-h-48 overflow-y-auto divide-y divide-slate-700/50">
+              <button onclick="switchUser('rahul@campus.edu')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700 flex items-center justify-between">
+                <span><strong>Rahul Sharma</strong></span>
+                <span class="text-[10px] bg-slate-600 px-1.5 py-0.5 rounded text-slate-200">BASIC (1.0x)</span>
+              </button>
+              <button onclick="switchUser('priya@campus.edu')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700 flex items-center justify-between">
+                <span><strong>Priya Patel</strong></span>
+                <span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">PRIME (1.5x)</span>
+              </button>
+              <button onclick="switchUser('amit@campus.edu')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700 flex items-center justify-between">
+                <span><strong>Amit Verma</strong></span>
+                <span class="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">PREMIUM (2.0x)</span>
+              </button>
+            </div>
+
+            <div class="border-t border-slate-700 my-1"></div>
+            <div class="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Other Portals</div>
+            <button onclick="switchTab('merchant-portal')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700 flex items-center space-x-2">
+              <i class="fa-solid fa-store text-blue-400"></i>
+              <span>Merchant Terminal (Canteen)</span>
+            </button>
+            <button onclick="switchTab('reconciliation-dashboard')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700 flex items-center space-x-2">
+              <i class="fa-solid fa-chart-line text-teal-400"></i>
+              <span>Monthly Reconciliation Auditor</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Sub-Nav Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 overflow-x-auto scrollbar-none text-sm font-medium border-t border-slate-800/60">
+      <button onclick="switchTab('student-wallet')" id="tab-student-wallet" class="tab-link py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-wallet"></i>
+        <span>Student Wallet & Pay</span>
+      </button>
+      <button onclick="switchTab('monthly-caps')" id="tab-monthly-caps" class="tab-link py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Monthly Cashback Limits</span>
+      </button>
+      <button onclick="switchTab('merchant-portal')" id="tab-merchant-portal" class="tab-link py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-store"></i>
+        <span>Merchant Terminal</span>
+      </button>
+      <button onclick="switchTab('reconciliation-dashboard')" id="tab-reconciliation-dashboard" class="tab-link py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-scale-balanced"></i>
+        <span>Monthly Reconciliation</span>
+      </button>
+      <button onclick="switchTab('lab-suite')" id="tab-lab-suite" class="tab-link py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+        <i class="fa-solid fa-vial-circle-check"></i>
+        <span>Specification Test Runner</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- Main View Containers -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: STUDENT WALLET & PAY -->
+    <!-- ========================================== -->
+    <div id="view-student-wallet" class="view-panel space-y-6">
+      
+      <!-- Top Grid: Digital Card & Quick Stats -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- FinPay Smart Card -->
+        <div class="lg:col-span-1 rounded-2xl p-6 bg-gradient-to-br from-slate-800 via-slate-800/95 to-emerald-950 border border-emerald-500/30 shadow-2xl relative overflow-hidden flex flex-col justify-between h-64">
+          <!-- Card Decorative Shapes -->
+          <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="absolute top-4 right-4 text-3xl text-emerald-400/20 font-black tracking-widest">FinPay</div>
+
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Campus Digital Wallet</span>
+              <span id="card-tier-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-700 text-slate-200 border border-slate-600">
+                BASIC TIER (1.0x)
+              </span>
+            </div>
+            <div class="mt-4">
+              <span class="text-xs text-slate-400">Available Balance</span>
+              <div class="flex items-baseline space-x-2">
+                <span class="text-3xl font-extrabold text-white" id="card-balance-rupees">₹1,000.00</span>
+                <span class="text-xs text-emerald-400 font-mono" id="card-balance-paise">(100,000 paise)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-end justify-between pt-4 border-t border-slate-700/60">
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase">Student Name</p>
+              <p class="text-sm font-semibold text-white tracking-wide" id="card-student-name">Rahul Sharma</p>
+              <p class="text-[11px] text-slate-400 font-mono" id="card-account-id">ID: FP-STU-001</p>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="openTopupModal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/30 flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span>Top Up</span>
+              </button>
+              <button onclick="openUpgradeTierModal()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold border border-slate-600 flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-crown text-amber-400 text-[10px]"></i>
+                <span>Tier</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Summary & Tier Perks -->
+        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-xs font-medium uppercase tracking-wider">Cashback Multiplier</span>
+              <i class="fa-solid fa-bolt text-emerald-400"></i>
+            </div>
+            <div class="my-3">
+              <span class="text-2xl font-bold text-emerald-400" id="summary-rate-multiplier">1.0×</span>
+              <p class="text-xs text-slate-400 mt-1">Multiplies base category rate</p>
+            </div>
+            <span class="text-[11px] text-slate-500" id="summary-rate-multiplier-sub">E.g. Canteen 2% → 2.0%</span>
+          </div>
+
+          <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-xs font-medium uppercase tracking-wider">Monthly Cap Multiplier</span>
+              <i class="fa-solid fa-shield-halved text-blue-400"></i>
+            </div>
+            <div class="my-3">
+              <span class="text-2xl font-bold text-blue-400" id="summary-cap-multiplier">1.0×</span>
+              <p class="text-xs text-slate-400 mt-1">Multiplies category cap</p>
+            </div>
+            <span class="text-[11px] text-slate-500" id="summary-cap-multiplier-sub">E.g. Canteen ₹50 → ₹50</span>
+          </div>
+
+          <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-xs font-medium uppercase tracking-wider">Total Cashback Earned</span>
+              <i class="fa-solid fa-gift text-purple-400"></i>
+            </div>
+            <div class="my-3">
+              <span class="text-2xl font-bold text-purple-400" id="summary-total-cashback">₹0.00</span>
+              <p class="text-xs text-slate-400 mt-1">Across all categories this month</p>
+            </div>
+            <button onclick="switchTab('monthly-caps')" class="text-[11px] text-emerald-400 hover:underline flex items-center space-x-1">
+              <span>View category caps</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Main Pay & Transaction Columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Column 1: Pay at Merchant (Interactive Form & Real-time Live Calculation) -->
+        <div class="lg:col-span-5 bg-slate-800/90 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-qrcode text-emerald-400"></i>
+                <span>Make a Campus Payment</span>
+              </h2>
+              <p class="text-xs text-slate-400">Instant transfer with automatic cashback</p>
+            </div>
+            <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">Integer Paise Core</span>
+          </div>
+
+          <form id="payment-form" onsubmit="handlePaymentSubmit(event)" class="space-y-4">
+            
+            <!-- Select Merchant -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1.5">Select Campus Merchant</label>
+              <select id="merchant-select" onchange="triggerPreviewUpdate()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <!-- Payment Amount in ₹ -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-semibold text-slate-300">Payment Amount (₹)</label>
+                <span class="text-[11px] text-slate-400 font-mono" id="amount-in-paise-display">= 0 paise</span>
+              </div>
+              <div class="relative">
+                <span class="absolute left-3.5 top-2.5 text-slate-400 text-sm font-bold">₹</span>
+                <input type="number" step="0.01" min="1" max="10000" id="payment-amount" value="100" oninput="triggerPreviewUpdate()" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-4 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-emerald-500" placeholder="e.g. 100">
+              </div>
+              <!-- Quick Chips -->
+              <div class="flex space-x-2 mt-2">
+                <button type="button" onclick="setQuickAmount(50)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹50</button>
+                <button type="button" onclick="setQuickAmount(100)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹100</button>
+                <button type="button" onclick="setQuickAmount(250)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹250</button>
+                <button type="button" onclick="setQuickAmount(500)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹500</button>
+              </div>
+            </div>
+
+            <!-- Idempotency Key Section (Safety Verification) -->
+            <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-300 flex items-center space-x-1.5">
+                  <i class="fa-solid fa-fingerprint text-emerald-400"></i>
+                  <span>Idempotency Key (Payment Safety)</span>
+                </span>
+                <button type="button" onclick="generateNewIdempotencyKey()" class="text-[10px] text-emerald-400 hover:underline">
+                  <i class="fa-solid fa-arrows-rotate"></i> Regenerate
+                </button>
+              </div>
+              <input type="text" id="idempotency-key-input" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-mono focus:outline-none" readonly>
+              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                <label class="flex items-center space-x-1.5 cursor-pointer">
+                  <input type="checkbox" id="test-duplicate-toggle" class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
+                  <span>Keep key for next pay (Simulate double-click)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Dynamic Live Cashback Breakdown Box -->
+            <div id="live-cashback-box" class="rounded-xl p-4 bg-emerald-950/30 border border-emerald-500/30 space-y-2.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-300">Category Base Rate:</span>
+                <span class="font-semibold text-white" id="preview-base-rate">2.0%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-300">Student Tier Multiplier:</span>
+                <span class="font-semibold text-emerald-400" id="preview-multiplier">1.0× (BASIC)</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-300">Effective Cashback Rate:</span>
+                <span class="font-bold text-emerald-400" id="preview-effective-rate">2.0%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs border-t border-emerald-500/20 pt-2">
+                <span class="text-slate-300">Raw Cashback (Floor math):</span>
+                <span class="font-mono text-slate-200" id="preview-raw-cashback">200 paise (₹2.00)</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-300">Category Cap Remaining:</span>
+                <span class="font-mono text-slate-200" id="preview-remaining-cap">₹50.00</span>
+              </div>
+              <div class="flex items-center justify-between text-sm border-t border-emerald-500/30 pt-2 font-bold">
+                <span class="text-white">Cashback to be Earned:</span>
+                <span class="text-emerald-400" id="preview-final-cashback">+₹2.00</span>
+              </div>
+            </div>
+
+            <!-- Submit Pay Button -->
+            <button type="submit" id="pay-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition transform active:scale-98 flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span id="pay-btn-label">Pay ₹100.00 Now</span>
+            </button>
+          </form>
+
+        </div>
+
+        <!-- Column 2: Live Real-Time Transaction Feed -->
+        <div class="lg:col-span-7 bg-slate-800/90 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+              <div>
+                <h2 class="text-base font-bold text-white flex items-center space-x-2">
+                  <i class="fa-solid fa-clock-rotate-left text-blue-400"></i>
+                  <span>Recent Wallet Transactions</span>
+                </h2>
+                <p class="text-xs text-slate-400">Live feed synced automatically via WebSockets</p>
+              </div>
+              <button onclick="loadUserTransactions()" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-700">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
+            </div>
+
+            <!-- Transactions List -->
+            <div id="transactions-container" class="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+              <!-- Dynamically populated transactions -->
+              <div class="text-center py-10 text-slate-500 text-sm">Loading transactions...</div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400">
+            <span>All monetary ledger entries verified in integer paise.</span>
+            <span class="text-emerald-400 font-mono">1 INR = 100 paise</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: MONTHLY CASHBACK LIMITS -->
+    <!-- ========================================== -->
+    <div id="view-monthly-caps" class="view-panel hidden space-y-6">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-gauge-high text-emerald-400"></i>
+              <span>Monthly Cashback Category Limits</span>
+            </h2>
+            <p class="text-xs text-slate-400">Track earned cashback against monthly caps specified for your wallet tier</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="text-xs text-slate-400">Active Tier:</span>
+            <span id="caps-tier-pill" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              BASIC (1.0x cap multiplier)
+            </span>
+          </div>
+        </div>
+
+        <!-- Category Progress Cards Grid -->
+        <div id="category-caps-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <!-- Dynamically populated category progress cards -->
+        </div>
+
+        <!-- Rules Explanation Table -->
+        <div class="mt-8 pt-6 border-t border-slate-700">
+          <h3 class="text-sm font-bold text-slate-300 mb-3 flex items-center space-x-2">
+            <i class="fa-solid fa-circle-info text-blue-400"></i>
+            <span>Specification Category Rules Reference</span>
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-900/70 text-slate-400 border-b border-slate-700">
+                  <th class="py-2.5 px-3">Merchant Category</th>
+                  <th class="py-2.5 px-3">BASIC Rate</th>
+                  <th class="py-2.5 px-3">BASIC Cap</th>
+                  <th class="py-2.5 px-3">PRIME (1.5×)</th>
+                  <th class="py-2.5 px-3">PREMIUM (2.0×)</th>
+                  <th class="py-2.5 px-3">Rounding Mode</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-white">Canteen</td>
+                  <td class="py-2.5 px-3 text-emerald-400">2.0%</td>
+                  <td class="py-2.5 px-3 font-mono">₹50 (5,000p)</td>
+                  <td class="py-2.5 px-3">3.0% / ₹75 cap</td>
+                  <td class="py-2.5 px-3">4.0% / ₹100 cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">Integer Floor</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-white">Stationery</td>
+                  <td class="py-2.5 px-3 text-emerald-400">1.0%</td>
+                  <td class="py-2.5 px-3 font-mono">₹20 (2,000p)</td>
+                  <td class="py-2.5 px-3">1.5% / ₹30 cap</td>
+                  <td class="py-2.5 px-3">2.0% / ₹40 cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">Integer Floor</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-white">Transport</td>
+                  <td class="py-2.5 px-3 text-emerald-400">3.0%</td>
+                  <td class="py-2.5 px-3 font-mono">₹100 (10,000p)</td>
+                  <td class="py-2.5 px-3">4.5% / ₹150 cap</td>
+                  <td class="py-2.5 px-3">6.0% / ₹200 cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">Integer Floor</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-white">Hostel</td>
+                  <td class="py-2.5 px-3 text-emerald-400">0.5%</td>
+                  <td class="py-2.5 px-3 font-mono">₹200 (20,000p)</td>
+                  <td class="py-2.5 px-3">0.75% / ₹300 cap</td>
+                  <td class="py-2.5 px-3">1.0% / ₹400 cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">Integer Floor</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-white">Online</td>
+                  <td class="py-2.5 px-3 text-emerald-400">1.0%</td>
+                  <td class="py-2.5 px-3 font-mono">₹30 (3,000p)</td>
+                  <td class="py-2.5 px-3">1.5% / ₹45 cap</td>
+                  <td class="py-2.5 px-3">2.0% / ₹60 cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">Integer Floor</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-white">Top-up</td>
+                  <td class="py-2.5 px-3 text-slate-400">0%</td>
+                  <td class="py-2.5 px-3 text-slate-400">No Cashback</td>
+                  <td class="py-2.5 px-3 text-slate-400">0% / No cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">0% / No cap</td>
+                  <td class="py-2.5 px-3 text-slate-400">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: MERCHANT PORTAL & TERMINAL -->
+    <!-- ========================================== -->
+    <div id="view-merchant-portal" class="view-panel hidden space-y-6">
+      
+      <!-- Merchant Header & Terminal Selection -->
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-cash-register text-teal-400"></i>
+              <span>Merchant Point-of-Sale Terminal</span>
+            </h2>
+            <p class="text-xs text-slate-400">Receives payments in real time when campus students make transactions</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="text-xs text-slate-400">Select Terminal:</span>
+            <select id="merchant-terminal-select" onchange="loadMerchantTerminalData()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Terminal Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-5">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Total Revenue Collected</span>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span class="text-2xl font-bold text-teal-400" id="merchant-balance-rupees">₹0.00</span>
+              <span class="text-xs text-slate-500 font-mono" id="merchant-balance-paise">(0 paise)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">Settled immediately into merchant account</p>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-5">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Terminal Category</span>
+            <div class="mt-2">
+              <span class="text-2xl font-bold text-white" id="merchant-category-name">Canteen</span>
+            </div>
+            <p class="text-[11px] text-emerald-400 mt-2" id="merchant-category-rate">2.0% Base Student Cashback</p>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-5 flex items-center justify-between">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-semibold">Live POS Connection</span>
+              <p class="text-xs font-bold text-emerald-400 mt-1 flex items-center space-x-1.5">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Listening for payments...</span>
+              </p>
+              <p class="text-[11px] text-slate-500 mt-1">Instant sound & screen alert on pay</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 text-xl">
+              <i class="fa-solid fa-bell animate-bounce"></i>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Incoming Real-time Payments List -->
+        <div class="mt-6 pt-6 border-t border-slate-700">
+          <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center space-x-2">
+            <i class="fa-solid fa-receipt text-blue-400"></i>
+            <span>Real-Time Incoming Payments Feed</span>
+          </h3>
+          <div id="merchant-incoming-txns" class="space-y-3">
+            <div class="text-center py-8 text-slate-500 text-xs">Waiting for incoming student payments...</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 4: MONTHLY RECONCILIATION & AUDIT -->
+    <!-- ========================================== -->
+    <div id="view-reconciliation-dashboard" class="view-panel hidden space-y-6">
+      
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
+              <span>Monthly Reconciliation & Ledger Audit</span>
+            </h2>
+            <p class="text-xs text-slate-400">Specification Step 6: Review transaction volume, cashback disbursements, and system balance integrity</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button onclick="loadMonthlyReconciliation()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>Run Month Audit</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Reconciliation Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Total Payments Processed</span>
+            <div class="mt-2 text-2xl font-bold text-white" id="recon-total-volume">₹0.00</div>
+            <p class="text-[11px] text-slate-400 mt-1" id="recon-txn-count">0 transactions</p>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Cashback Disbursed</span>
+            <div class="mt-2 text-2xl font-bold text-emerald-400" id="recon-total-cashback">₹0.00</div>
+            <p class="text-[11px] text-slate-400 mt-1" id="recon-cashback-paise">0 paise funded</p>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Wallet Top-up Volume</span>
+            <div class="mt-2 text-2xl font-bold text-blue-400" id="recon-topup-volume">₹0.00</div>
+            <p class="text-[11px] text-slate-400 mt-1">Student balance reloads</p>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4">
+            <span class="text-xs text-slate-400 uppercase font-semibold">System Audit Status</span>
+            <div class="mt-2 text-lg font-bold text-emerald-400 flex items-center space-x-1.5">
+              <i class="fa-solid fa-shield-check"></i>
+              <span id="recon-status">BALANCED (100% Exact)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Paise integer consistency verified</p>
+          </div>
+        </div>
+
+        <!-- Breakdown Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          
+          <!-- Category Breakdown Table -->
+          <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Merchant Category Breakdown</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="text-slate-400 border-b border-slate-700/80">
+                    <th class="pb-2">Category</th>
+                    <th class="pb-2">Txns</th>
+                    <th class="pb-2">Volume (₹)</th>
+                    <th class="pb-2">Cashback (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="recon-category-table-body" class="divide-y divide-slate-800 text-slate-200">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tier Breakdown Table -->
+          <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Student Tier Breakdown</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="text-slate-400 border-b border-slate-700/80">
+                    <th class="pb-2">Wallet Tier</th>
+                    <th class="pb-2">Multiplier</th>
+                    <th class="pb-2">Volume (₹)</th>
+                    <th class="pb-2">Cashback (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="recon-tier-table-body" class="divide-y divide-slate-800 text-slate-200">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 5: SPECIFICATION LAB TEST RUNNER -->
+    <!-- ========================================== -->
+    <div id="view-lab-suite" class="view-panel hidden space-y-6">
+      
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-vial-circle-check text-emerald-400"></i>
+              <span>FinPay Specification Live Verification Suite</span>
+            </h2>
+            <p class="text-xs text-slate-400">Directly validates all business rules, boundary values, and architectural requirements from the Lab 3 document</p>
+          </div>
+          <button onclick="runAllSpecTests()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-2 shadow-lg shadow-emerald-600/30">
+            <i class="fa-solid fa-play"></i>
+            <span>Run All Tests Live</span>
+          </button>
+        </div>
+
+        <div id="test-cards-list" class="space-y-4 mt-6">
+          
+          <!-- Test 1 -->
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white">Rule 1: Rahul Canteen Payment Example (Page 1)</span>
+                <span class="test-status-pill text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">READY</span>
+              </div>
+              <p class="text-xs text-slate-400">₹100 at Canteen (2.0%) = 200 paise cashback (₹2.00).</p>
+            </div>
+            <button onclick="runSingleTest(1)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600">Run</button>
+          </div>
+
+          <!-- Test 2 -->
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white">Rule 2: Integer Paise Floor Operation (Page 2, Sec 4)</span>
+                <span class="test-status-pill text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">READY</span>
+              </div>
+              <p class="text-xs text-slate-400">Calculated cashback of 6.66 paise MUST become 6 paise, not 7 paise.</p>
+            </div>
+            <button onclick="runSingleTest(2)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600">Run</button>
+          </div>
+
+          <!-- Test 3 -->
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white">Rule 3: Tier Multipliers (Page 1, Sec 3)</span>
+                <span class="test-status-pill text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">READY</span>
+              </div>
+              <p class="text-xs text-slate-400">PRIME applies 1.5× rate/cap; PREMIUM applies 2.0× rate/cap.</p>
+            </div>
+            <button onclick="runSingleTest(3)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600">Run</button>
+          </div>
+
+          <!-- Test 4 -->
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white">Rule 4: Monthly Cap Clamping (Page 1, Step 5)</span>
+                <span class="test-status-pill text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">READY</span>
+              </div>
+              <p class="text-xs text-slate-400">When monthly cap is saturated, cashback awarded reduces to remaining limit / 0.</p>
+            </div>
+            <button onclick="runSingleTest(4)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600">Run</button>
+          </div>
+
+          <!-- Test 5 -->
+          <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white">Rule 5: Payment Safety & Idempotency Key (Page 1, Step 4)</span>
+                <span class="test-status-pill text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">READY</span>
+              </div>
+              <p class="text-xs text-slate-400">Reusing idempotency key returns cached transaction without double debit.</p>
+            </div>
+            <button onclick="runSingleTest(5)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600">Run</button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modals -->
+  <!-- Top Up Modal -->
+  <div id="topup-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i class="fa-solid fa-plus-circle text-emerald-400"></i>
+          <span>Top Up Student Wallet</span>
+        </h3>
+        <button onclick="closeTopupModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Enter Reload Amount (₹)</label>
+          <input type="number" id="topup-amount-input" value="500" min="10" step="10" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="document.getElementById('topup-amount-input').value = 200" class="flex-1 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹200</button>
+          <button onclick="document.getElementById('topup-amount-input').value = 500" class="flex-1 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹500</button>
+          <button onclick="document.getElementById('topup-amount-input').value = 1000" class="flex-1 py-1 text-xs rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300">₹1,000</button>
+        </div>
+        <p class="text-[11px] text-slate-400">Top-up rule: 0% cashback, balances credited immediately in integer paise.</p>
+      </div>
+
+      <div class="flex space-x-3 pt-3">
+        <button onclick="closeTopupModal()" class="flex-1 py-2.5 rounded-xl bg-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-600 transition">Cancel</button>
+        <button onclick="executeTopup()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition">Confirm Top-Up</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upgrade Tier Modal -->
+  <div id="tier-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i class="fa-solid fa-crown text-amber-400"></i>
+          <span>Change Wallet Tier</span>
+        </h3>
+        <button onclick="closeUpgradeTierModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Select Tier Level</label>
+        
+        <div onclick="selectTierOption('BASIC')" id="tier-opt-BASIC" class="tier-card p-3 rounded-xl border border-slate-700 bg-slate-900/60 hover:border-slate-500 cursor-pointer flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-white">BASIC Tier</div>
+            <div class="text-xs text-slate-400">Standard campus rates (1.0× multiplier)</div>
+          </div>
+          <span class="text-xs font-mono font-bold text-slate-300">1.0×</span>
+        </div>
+
+        <div onclick="selectTierOption('PRIME')" id="tier-opt-PRIME" class="tier-card p-3 rounded-xl border border-slate-700 bg-slate-900/60 hover:border-amber-500 cursor-pointer flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-amber-400">PRIME Tier</div>
+            <div class="text-xs text-slate-400">50% higher cashback & caps (1.5× multiplier)</div>
+          </div>
+          <span class="text-xs font-mono font-bold text-amber-400">1.5×</span>
+        </div>
+
+        <div onclick="selectTierOption('PREMIUM')" id="tier-opt-PREMIUM" class="tier-card p-3 rounded-xl border border-slate-700 bg-slate-900/60 hover:border-purple-500 cursor-pointer flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-purple-400">PREMIUM Tier</div>
+            <div class="text-xs text-slate-400">Double cashback & double caps (2.0× multiplier)</div>
+          </div>
+          <span class="text-xs font-mono font-bold text-purple-400">2.0×</span>
+        </div>
+      </div>
+
+      <div class="flex space-x-3 pt-3">
+        <button onclick="closeUpgradeTierModal()" class="flex-1 py-2.5 rounded-xl bg-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-600 transition">Cancel</button>
+        <button onclick="executeTierUpdate()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition">Save Tier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt Modal -->
+  <div id="receipt-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <div class="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 mx-auto flex items-center justify-center text-emerald-400 text-2xl">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-extrabold text-white">Payment Successful</h3>
+        <p class="text-xs text-slate-400" id="receipt-msg">Payment complete</p>
+      </div>
+
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-left space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Reference:</span>
+          <span class="font-mono text-white text-[11px]" id="receipt-ref">—</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Merchant:</span>
+          <span class="font-semibold text-white" id="receipt-merchant">—</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Paid Amount:</span>
+          <span class="font-bold text-white text-sm" id="receipt-amount">—</span>
+        </div>
+        <div class="flex justify-between border-t border-slate-800 pt-2">
+          <span class="text-emerald-400 font-bold">Cashback Credited:</span>
+          <span class="font-bold text-emerald-400 text-sm" id="receipt-cashback">—</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">New Balance:</span>
+          <span class="font-semibold text-slate-200" id="receipt-new-balance">—</span>
+        </div>
+      </div>
+
+      <button onclick="closeReceiptModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition">
+        Done
+      </button>
+    </div>
+  </div>
+
+  <!-- Register New Student / Person Modal -->
+  <div id="register-student-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i class="fa-solid fa-user-plus text-emerald-400"></i>
+          <span>Register New Campus Student</span>
+        </h3>
+        <button onclick="closeRegisterStudentModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="handleRegisterStudentSubmit(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+          <input type="text" id="reg-name" required placeholder="e.g. Vikram Singh" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Campus Email</label>
+          <input type="email" id="reg-email" required placeholder="e.g. vikram@campus.edu" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input type="password" id="reg-password" required value="password123" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Initial Tier</label>
+            <select id="reg-tier" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+              <option value="BASIC">BASIC (1.0x)</option>
+              <option value="PRIME">PRIME (1.5x)</option>
+              <option value="PREMIUM">PREMIUM (2.0x)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Initial Balance (₹)</label>
+            <input type="number" id="reg-balance" value="1000" min="0" step="50" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-bold focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 pt-1">New student will receive an active wallet, unique ID, and instant real-time access.</p>
+
+        <div class="flex space-x-3 pt-3">
+          <button type="button" onclick="closeRegisterStudentModal()" class="flex-1 py-2.5 rounded-xl bg-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-600 transition">Cancel</button>
+          <button type="submit" id="reg-submit-btn" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition">Create Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Application -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
